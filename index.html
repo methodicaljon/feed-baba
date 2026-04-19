@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#f7f8fb">
+  <title>Feed Emma</title>
+  <style>
+    :root {
+      --bg: #f7f8fb;
+      --card: #ffffff;
+      --text: #1f2937;
+      --muted: #4b5563;
+      --accent: #1d4ed8;
+      --accent-pressed: #1e40af;
+      --ring: rgba(29, 78, 216, 0.22);
+      --radius: 18px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      min-height: 100dvh;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top right, #eaf0ff, transparent 42%),
+        radial-gradient(circle at bottom left, #eef6ff, transparent 40%),
+        var(--bg);
+      display: grid;
+      place-items: center;
+      padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+    }
+
+    .app {
+      width: min(520px, 100%);
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+      padding: 22px;
+    }
+
+    h1 {
+      margin: 0 0 14px;
+      font-size: clamp(1.6rem, 3vw + 1rem, 2rem);
+      line-height: 1.2;
+      text-align: center;
+    }
+
+    .feed-button {
+      width: 100%;
+      border: none;
+      border-radius: 16px;
+      padding: 22px 16px;
+      font-size: clamp(1.35rem, 2.4vw + 1rem, 1.65rem);
+      font-weight: 700;
+      color: #ffffff;
+      background: linear-gradient(180deg, #2563eb, var(--accent));
+      box-shadow: 0 8px 20px var(--ring);
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      cursor: pointer;
+    }
+
+    .feed-button:active {
+      transform: translateY(1px);
+      background: var(--accent-pressed);
+    }
+
+    .feed-button:focus-visible {
+      outline: 3px solid var(--ring);
+      outline-offset: 2px;
+    }
+
+    .status {
+      margin-top: 18px;
+      display: grid;
+      gap: 10px;
+      font-size: 1rem;
+      line-height: 1.45;
+    }
+
+    .line {
+      background: #f8fafc;
+      border-radius: 12px;
+      padding: 12px 13px;
+      color: var(--muted);
+    }
+
+    .label {
+      color: var(--text);
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <h1>Feed Emma</h1>
+    <button id="fedButton" class="feed-button" type="button">Fed Emma</button>
+
+    <section class="status" aria-live="polite">
+      <div class="line"><span class="label">Last fed:</span> <span id="lastFedText">Not yet</span></div>
+      <div class="line"><span class="label">Next feed due in 3 hours:</span> <span id="dueText">Press the button after feeding</span></div>
+    </section>
+  </main>
+
+  <script type="module">
+    import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+    // Replace with your project values from Supabase > Settings > API
+    var SUPABASE_URL = "https://YOUR_PROJECT_ID.supabase.co";
+    var SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
+
+    // Keep one shared row in table: feed_state (id int primary key, last_fed timestamptz)
+    var STATE_ROW_ID = 1;
+    var THREE_HOURS_MS = 3 * 60 * 60 * 1000;
+    var supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    var lastFedText = document.getElementById("lastFedText");
+    var dueText = document.getElementById("dueText");
+    var fedButton = document.getElementById("fedButton");
+
+    var lastFedDate = null;
+
+    function formatDate(date) {
+      return date.toLocaleString([], {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit"
+      });
+    }
+
+    function formatDuration(ms) {
+      var totalMinutes = Math.ceil(ms / 60000);
+      var hours = Math.floor(totalMinutes / 60);
+      var minutes = totalMinutes % 60;
+
+      if (hours <= 0) return minutes + "m";
+      if (minutes === 0) return hours + "h";
+      return hours + "h " + minutes + "m";
+    }
+
+    function render() {
+      if (!lastFedDate) {
+        lastFedText.textContent = "Not yet";
+        dueText.textContent = "Press the button after feeding";
+        return;
+      }
+
+      lastFedText.textContent = formatDate(lastFedDate);
+      var dueAt = new Date(lastFedDate.getTime() + THREE_HOURS_MS);
+      var remainingMs = dueAt.getTime() - Date.now();
+
+      if (remainingMs > 0) {
+        dueText.textContent = formatDuration(remainingMs);
+      } else {
+        dueText.textContent = "Now (overdue by " + formatDuration(Math.abs(remainingMs)) + ")";
+      }
+    }
+
+    async function loadLastFed() {
+      var result = await supabase
+        .from("feed_state")
+        .select("last_fed")
+        .eq("id", STATE_ROW_ID)
+        .maybeSingle();
+
+      if (result.error) {
+        lastFedText.textContent = "Connection issue";
+        dueText.textContent = "Check Supabase settings";
+        return;
+      }
+
+      if (!result.data || !result.data.last_fed) {
+        lastFedDate = null;
+      } else {
+        lastFedDate = new Date(result.data.last_fed);
+        if (isNaN(lastFedDate.getTime())) lastFedDate = null;
+      }
+
+      render();
+    }
+
+    async function saveNow() {
+      fedButton.disabled = true;
+      fedButton.textContent = "Saving...";
+
+      var nowIso = new Date().toISOString();
+      var result = await supabase
+        .from("feed_state")
+        .upsert({ id: STATE_ROW_ID, last_fed: nowIso }, { onConflict: "id" });
+
+      fedButton.disabled = false;
+      fedButton.textContent = "Fed Emma";
+
+      if (result.error) {
+        lastFedText.textContent = "Save failed";
+        dueText.textContent = "Please try again";
+        return;
+      }
+
+      lastFedDate = new Date(nowIso);
+      render();
+    }
+
+    function subscribeToRealtime() {
+      supabase
+        .channel("feed-state-live")
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "feed_state", filter: "id=eq." + STATE_ROW_ID },
+          function (payload) {
+            var row = payload.new || payload.old;
+            if (row && row.last_fed) {
+              var next = new Date(row.last_fed);
+              if (!isNaN(next.getTime())) {
+                lastFedDate = next;
+                render();
+                return;
+              }
+            }
+            loadLastFed();
+          }
+        )
+        .subscribe();
+    }
+
+    fedButton.addEventListener("click", saveNow);
+    await loadLastFed();
+    subscribeToRealtime();
+    setInterval(render, 30000);
+    setInterval(loadLastFed, 60000);
+  </script>
+</body>
+</html>
