@@ -23,6 +23,7 @@
       --safe: #16803c;
       --warn: #b77900;
       --danger: #d92d20;
+      --future: #eef1f5;
       --radius: 8px;
     }
 
@@ -38,17 +39,16 @@
       background: var(--bg);
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       justify-content: center;
-      padding: max(18px, env(safe-area-inset-top)) max(18px, env(safe-area-inset-right)) max(18px, env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left));
+      padding: max(18px, env(safe-area-inset-top)) max(18px, env(safe-area-inset-right)) calc(128px + env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left));
     }
 
     .app {
       width: min(430px, 100%);
       display: grid;
-      grid-template-rows: auto auto auto 1fr auto;
       gap: 28px;
-      min-height: min(760px, calc(100vh - 36px));
+      min-height: min(640px, calc(100vh - 146px - env(safe-area-inset-bottom)));
     }
 
     .brand {
@@ -140,12 +140,12 @@
       min-width: 8ch;
     }
 
-    .activity {
+    .timeline-section {
       display: grid;
-      gap: 11px;
+      gap: 13px;
     }
 
-    .activity-title {
+    .timeline-title {
       display: grid;
       gap: 2px;
       color: var(--muted);
@@ -155,40 +155,87 @@
       text-transform: uppercase;
     }
 
-    .activity-title span:last-child {
+    .timeline-title span:last-child {
       font-size: 0.68rem;
       font-weight: 700;
     }
 
-    .activity-grid {
-      display: grid;
-      grid-template-columns: repeat(24, minmax(0, 1fr));
-      gap: 4px;
+    .timeline-wrap {
+      position: relative;
+      padding: 3px 0;
     }
 
-    .hour-cell {
+    .timeline {
+      display: grid;
+      grid-template-columns: repeat(9, minmax(0, 1fr));
+      gap: 6px;
+    }
+
+    .timeline-block {
       aspect-ratio: 1;
-      border-radius: 5px;
-      background: var(--subtle);
+      border-radius: 7px;
+      background: var(--future);
       transition: background-color 180ms ease, transform 180ms ease;
     }
 
-    .hour-cell.level-1 {
+    .timeline-block.feed-old {
       background: var(--blue-1);
     }
 
-    .hour-cell.level-2 {
+    .timeline-block.feed-mid {
       background: var(--blue-2);
     }
 
-    .hour-cell.level-3 {
+    .timeline-block.feed-recent {
       background: var(--blue-3);
     }
 
+    .timeline-block.future-soon {
+      background: var(--warn);
+    }
+
+    .timeline-block.overdue {
+      background: var(--danger);
+    }
+
+    .now-marker {
+      position: absolute;
+      top: -4px;
+      bottom: -4px;
+      left: 50%;
+      width: 2px;
+      border-radius: 999px;
+      background: var(--text);
+      opacity: 0.28;
+      transform: translateX(-50%);
+    }
+
+    .timeline-labels {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      color: var(--muted);
+      font-size: 0.72rem;
+    }
+
+    .timeline-labels span:nth-child(2) {
+      color: var(--text);
+      font-weight: 800;
+    }
+
+    .timeline-labels span:last-child {
+      text-align: right;
+    }
+
     .actions {
-      align-self: end;
+      position: fixed;
+      right: max(18px, env(safe-area-inset-right));
+      bottom: max(18px, env(safe-area-inset-bottom));
+      left: max(18px, env(safe-area-inset-left));
+      z-index: 5;
       display: grid;
       gap: 12px;
+      max-width: 430px;
+      margin: 0 auto;
     }
 
     .feed-button {
@@ -307,7 +354,7 @@
     @media (max-width: 390px) {
       .app {
         gap: 23px;
-        min-height: calc(100vh - 36px);
+        min-height: calc(100vh - 148px - env(safe-area-inset-bottom));
       }
 
       .timer-value {
@@ -334,15 +381,16 @@
         --bg: #000000;
         --text: #f5f5f7;
         --muted: #a8adb7;
-      --subtle: #1d1f24;
-      --blue-1: #17304f;
-      --blue-2: #2f81f7;
-      --blue-3: #58a6ff;
-      --accent: #58a6ff;
-      --accent-pressed: #2f81f7;
-      --button: #f5f5f7;
-      --button-text: #000000;
-      --button-pressed: #d8dce3;
+        --subtle: #1d1f24;
+        --future: #1d1f24;
+        --blue-1: #17304f;
+        --blue-2: #2f81f7;
+        --blue-3: #58a6ff;
+        --accent: #58a6ff;
+        --accent-pressed: #2f81f7;
+        --button: #f5f5f7;
+        --button-text: #000000;
+        --button-pressed: #d8dce3;
         --safe: #63d471;
         --warn: #ffd45a;
         --danger: #ff6b5f;
@@ -385,12 +433,20 @@
       </div>
     </section>
 
-    <section class="activity" aria-label="Today feed activity">
-      <div class="activity-title">
-        <span>Today</span>
-        <span>24 hours</span>
+    <section class="timeline-section" aria-label="Feed timeline">
+      <div class="timeline-title">
+        <span>Timeline</span>
+        <span>Feeds and next window</span>
       </div>
-      <div id="activityGrid" class="activity-grid"></div>
+      <div class="timeline-wrap">
+        <div id="timeline" class="timeline"></div>
+        <div class="now-marker" aria-hidden="true"></div>
+      </div>
+      <div class="timeline-labels" aria-hidden="true">
+        <span>Past</span>
+        <span>Now</span>
+        <span>Next</span>
+      </div>
     </section>
 
     <section class="actions">
@@ -421,7 +477,7 @@
     var lastFedText = document.getElementById("lastFedText");
     var sinceText = document.getElementById("sinceText");
     var nextFeedText = document.getElementById("nextFeedText");
-    var activityGrid = document.getElementById("activityGrid");
+    var timeline = document.getElementById("timeline");
     var fedButton = document.getElementById("fedButton");
     var noticeText = document.getElementById("noticeText");
     var confirmPrompt = document.getElementById("confirmPrompt");
@@ -514,21 +570,12 @@
         return Math.max(0, Math.ceil(ms / 1000)) + "s";
       }
 
-      var totalSeconds = Math.max(0, Math.ceil(ms / 1000));
-      var totalMinutes = Math.ceil(totalSeconds / 60);
+      var totalMinutes = Math.max(0, Math.ceil(ms / 60000));
+      var hours = Math.floor(totalMinutes / 60);
+      var minutes = totalMinutes % 60;
 
-      if (totalMinutes >= 100) {
-        return totalMinutes + "m";
-      }
-
-      var minutes = Math.floor(totalSeconds / 60);
-      var seconds = totalSeconds % 60;
-
-      if (seconds === 0) {
-        return minutes + ":00";
-      }
-
-      return minutes + ":" + String(seconds).padStart(2, "0");
+      if (hours > 0) return hours + "h " + minutes + "m";
+      return totalMinutes + "m";
     }
 
     function setTimerState(state) {
@@ -574,50 +621,63 @@
       }
     }
 
-    function getFeedsByHour() {
+    function getFeedForWindow(windowStart, windowEnd) {
+      var feeds = getFeeds();
+
+      for (var index = 0; index < feeds.length; index += 1) {
+        var feedDate = new Date(feeds[index]);
+        if (feedDate >= windowStart && feedDate < windowEnd) return feedDate;
+      }
+
+      return null;
+    }
+
+    function getFeedClass(feedDate) {
+      if (!feedDate) return "";
+
+      var ageMinutes = (Date.now() - feedDate.getTime()) / 60000;
+      if (ageMinutes <= 90) return "feed-recent";
+      if (ageMinutes <= 240) return "feed-mid";
+      return "feed-old";
+    }
+
+    function renderTimeline() {
       var now = new Date();
-      var startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      var feedsByHour = {};
+      var lastFeedDate = getLastFeedDate();
+      var dueAt = lastFeedDate ? new Date(lastFeedDate.getTime() + FEED_INTERVAL_MS) : null;
+      var windowMinutes = 30;
+      var startTime = now.getTime() - 4.5 * windowMinutes * 60000;
 
-      getFeeds().forEach(function (entry) {
-        var date = new Date(entry);
-        if (date < startOfDay || date > now) return;
+      timeline.innerHTML = "";
 
-        var hour = date.getHours();
-        if (!feedsByHour[hour] || date > feedsByHour[hour]) {
-          feedsByHour[hour] = date;
+      for (var index = 0; index < 9; index += 1) {
+        var windowStart = new Date(startTime + index * windowMinutes * 60000);
+        var windowEnd = new Date(windowStart.getTime() + windowMinutes * 60000);
+        var feedDate = getFeedForWindow(windowStart, windowEnd);
+        var block = document.createElement("div");
+        var blockClass = "timeline-block";
+
+        if (feedDate) {
+          blockClass += " " + getFeedClass(feedDate);
+          block.title = "Fed at " + formatClock(feedDate);
+        } else if (dueAt && Date.now() >= dueAt.getTime() && windowEnd > dueAt && windowStart <= now) {
+          blockClass += " overdue";
+          block.title = "Overdue since " + formatClock(dueAt);
+        } else if (dueAt && dueAt > now && dueAt >= windowStart && dueAt < windowEnd) {
+          blockClass += " future-soon";
+          block.title = "Next feed around " + formatClock(dueAt);
+        } else {
+          block.title = windowStart < now ? "No feed" : "Upcoming";
         }
-      });
 
-      return feedsByHour;
-    }
-
-    function getActivityLevel(feedDate) {
-      if (!feedDate) return 0;
-
-      var ageHours = (Date.now() - feedDate.getTime()) / 3600000;
-      if (ageHours <= 2) return 3;
-      if (ageHours <= 8) return 2;
-      return 1;
-    }
-
-    function renderActivityGrid() {
-      var feedsByHour = getFeedsByHour();
-      activityGrid.innerHTML = "";
-
-      for (var hour = 0; hour < 24; hour += 1) {
-        var cell = document.createElement("div");
-        var feedDate = feedsByHour[hour];
-        var level = getActivityLevel(feedDate);
-        cell.className = "hour-cell" + (level ? " level-" + level : "");
-        cell.title = feedDate ? "Fed at " + formatClock(feedDate) : "No feed logged at " + hour + ":00";
-        activityGrid.appendChild(cell);
+        block.className = blockClass;
+        timeline.appendChild(block);
       }
     }
 
     function render() {
       renderTimer();
-      renderActivityGrid();
+      renderTimeline();
     }
 
     function showNotice(message) {
@@ -682,7 +742,7 @@
     migrateLegacyFeeds();
     render();
     setInterval(renderTimer, 1000);
-    setInterval(renderActivityGrid, 60000);
+    setInterval(renderTimeline, 30000);
   </script>
 </body>
 </html>
