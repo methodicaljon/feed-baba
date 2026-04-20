@@ -4,23 +4,25 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="theme-color" content="#f7f8fb">
-  <title>Feed Baba</title>
+  <meta name="theme-color" content="#f6f7f9">
+  <title>Feed Baby</title>
   <style>
     :root {
-      --bg: #f7f8fb;
-      --card: #ffffff;
-      --text: #1f2937;
-      --muted: #4b5563;
-      --accent: #1d4ed8;
-      --accent-pressed: #1e40af;
-      --ring: rgba(29, 78, 216, 0.22);
-      --safe: #16a34a;
-      --safe-bg: #dcfce7;
-      --warn: #facc15;
-      --warn-bg: #fef9c3;
-      --danger: #dc2626;
-      --danger-bg: #fee2e2;
+      --bg: #f6f7f9;
+      --surface: #ffffff;
+      --surface-soft: #f1f5f9;
+      --text: #111827;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --accent: #0a84ff;
+      --accent-pressed: #0066cc;
+      --safe: #0a7f3f;
+      --safe-bg: #e7f8ee;
+      --warn: #9a6a00;
+      --warn-bg: #fff4bf;
+      --danger: #d92d20;
+      --danger-bg: #ffe8e5;
+      --shadow: 0 18px 44px rgba(15, 23, 42, 0.1);
       --radius: 8px;
     }
 
@@ -38,37 +40,182 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+      padding: max(14px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right)) max(14px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
     }
 
     .app {
-      width: min(520px, 100%);
-      background: var(--card);
+      width: min(560px, 100%);
+      display: grid;
+      gap: 14px;
+      background: var(--surface);
+      border: 1px solid var(--border);
       border-radius: var(--radius);
-      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
-      padding: 22px;
+      box-shadow: var(--shadow);
+      padding: 18px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
     }
 
     h1 {
-      margin: 0 0 14px;
-      font-size: 1.9rem;
+      margin: 0;
+      font-size: 1.35rem;
       line-height: 1.2;
+    }
+
+    .version {
+      color: var(--muted);
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+
+    .countdown {
+      display: grid;
+      gap: 12px;
+      min-height: 250px;
+      place-items: center;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface-soft);
+      padding: 24px 12px;
       text-align: center;
+      color: var(--accent);
+    }
+
+    .countdown.safe {
+      color: var(--safe);
+      background: var(--safe-bg);
+      border-color: rgba(10, 127, 63, 0.2);
+    }
+
+    .countdown.warning {
+      color: var(--warn);
+      background: var(--warn-bg);
+      border-color: rgba(154, 106, 0, 0.25);
+    }
+
+    .countdown.overdue {
+      color: var(--danger);
+      background: var(--danger-bg);
+      border-color: rgba(217, 45, 32, 0.24);
+    }
+
+    .countdown-label {
+      color: var(--muted);
+      font-size: 0.82rem;
+      font-weight: 800;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+
+    .countdown-time {
+      font-size: 5.4rem;
+      font-weight: 850;
+      line-height: 0.9;
+      letter-spacing: 0;
+      overflow-wrap: anywhere;
+    }
+
+    .countdown.overdue .countdown-time {
+      font-size: 4.2rem;
+      font-weight: 900;
+    }
+
+    .meta {
+      color: var(--muted);
+      font-size: 0.98rem;
+    }
+
+    .panel {
+      display: grid;
+      gap: 10px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      padding: 12px;
+    }
+
+    .panel-title {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 10px;
+      color: var(--text);
+      font-size: 0.95rem;
+      font-weight: 800;
+    }
+
+    .panel-note {
+      color: var(--muted);
+      font-size: 0.82rem;
+      font-weight: 600;
+    }
+
+    .activity-grid {
+      display: grid;
+      grid-template-columns: repeat(24, minmax(0, 1fr));
+      gap: 4px;
+    }
+
+    .hour-cell {
+      aspect-ratio: 1;
+      border: 0;
+      border-radius: 4px;
+      background: #e5e7eb;
+      padding: 0;
+    }
+
+    .hour-cell.level-1 {
+      background: #bfdbfe;
+    }
+
+    .hour-cell.level-2 {
+      background: #60a5fa;
+    }
+
+    .hour-cell.level-3 {
+      background: #1d4ed8;
+    }
+
+    .hour-labels {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      color: var(--muted);
+      font-size: 0.74rem;
+    }
+
+    .hour-labels span:nth-child(2),
+    .hour-labels span:nth-child(3) {
+      text-align: center;
+    }
+
+    .hour-labels span:last-child {
+      text-align: right;
+    }
+
+    .bottom {
+      display: grid;
+      gap: 12px;
     }
 
     .feed-button {
       width: 100%;
-      border: none;
+      border: 0;
       border-radius: var(--radius);
-      padding: 22px 16px;
-      font-size: 1.45rem;
-      font-weight: 700;
+      padding: 21px 16px;
       color: #ffffff;
       background: var(--accent);
-      box-shadow: 0 8px 20px var(--ring);
+      box-shadow: 0 10px 24px rgba(10, 132, 255, 0.24);
+      font: inherit;
+      font-size: 1.45rem;
+      font-weight: 850;
+      cursor: pointer;
       touch-action: manipulation;
       -webkit-tap-highlight-color: transparent;
-      cursor: pointer;
     }
 
     .feed-button:active {
@@ -76,109 +223,49 @@
       background: var(--accent-pressed);
     }
 
-    .feed-button:focus-visible {
-      outline: 3px solid var(--ring);
+    .feed-button:focus-visible,
+    .confirm-actions button:focus-visible {
+      outline: 3px solid rgba(10, 132, 255, 0.28);
       outline-offset: 2px;
     }
 
     .feed-button:disabled {
       cursor: not-allowed;
-      opacity: 0.68;
+      opacity: 0.62;
       transform: none;
     }
 
-    .status {
-      margin-top: 16px;
-      display: grid;
-      gap: 10px;
-      font-size: 1rem;
-      line-height: 1.45;
-    }
-
-    .countdown {
-      display: grid;
-      gap: 8px;
-      border: 2px solid #dbeafe;
-      border-radius: var(--radius);
-      background: #eff6ff;
-      min-height: 230px;
-      place-items: center;
-      padding: 24px 14px;
-      text-align: center;
-      color: var(--accent);
-    }
-
-    .countdown.safe {
-      border-color: var(--safe);
-      background: var(--safe-bg);
-      color: var(--safe);
-    }
-
-    .countdown.warning {
-      border-color: var(--warn);
-      background: var(--warn-bg);
-      color: #854d0e;
-    }
-
-    .countdown.overdue {
-      border-color: var(--danger);
-      background: var(--danger-bg);
-      color: var(--danger);
-    }
-
-    .countdown-label {
-      color: var(--text);
-      font-size: 0.95rem;
-      font-weight: 700;
-      text-transform: uppercase;
-    }
-
-    .countdown-time {
-      font-size: 5.3rem;
-      font-weight: 800;
-      line-height: 0.9;
-      letter-spacing: 0;
-      overflow-wrap: anywhere;
-    }
-
-    .countdown.overdue .countdown-time {
-      font-weight: 900;
-    }
-
-    .line {
-      background: #f8fafc;
-      border-radius: var(--radius);
-      padding: 12px 13px;
-      color: var(--muted);
-    }
-
-    .label {
-      color: var(--text);
-      font-weight: 600;
-    }
-
     .notice {
-      min-height: 1.3em;
-      margin: 10px 0 0;
+      min-height: 1.25em;
+      margin: 0;
       color: var(--safe);
-      font-weight: 700;
+      font-weight: 800;
       text-align: center;
     }
 
     .notice:empty {
-      margin-top: 0;
+      min-height: 0;
     }
 
     .feed-log {
       display: grid;
-      gap: 7px;
+      gap: 8px;
       margin: 0;
       padding: 0;
       list-style: none;
     }
 
     .feed-log li {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
       color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .feed-log strong {
+      color: var(--text);
+      font-weight: 750;
     }
 
     .confirm {
@@ -188,7 +275,7 @@
       display: grid;
       place-items: center;
       padding: 16px;
-      background: rgba(15, 23, 42, 0.42);
+      background: rgba(17, 24, 39, 0.36);
     }
 
     .confirm[hidden] {
@@ -197,18 +284,18 @@
 
     .confirm-box {
       width: min(340px, 100%);
+      border: 1px solid var(--border);
       border-radius: var(--radius);
-      background: var(--card);
+      background: var(--surface);
+      box-shadow: var(--shadow);
       padding: 18px;
       text-align: center;
-      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.2);
     }
 
     .confirm-box p {
       margin: 0 0 16px;
-      color: var(--text);
       font-size: 1.15rem;
-      font-weight: 700;
+      font-weight: 850;
     }
 
     .confirm-actions {
@@ -220,9 +307,9 @@
     .confirm-actions button {
       border: 0;
       border-radius: var(--radius);
-      padding: 13px 12px;
+      padding: 14px 12px;
       font: inherit;
-      font-weight: 700;
+      font-weight: 800;
       cursor: pointer;
     }
 
@@ -233,113 +320,127 @@
 
     .confirm-cancel {
       color: var(--text);
-      background: #e5e7eb;
+      background: var(--surface-soft);
     }
 
-    .version {
-      margin: 14px 0 0;
-      color: var(--muted);
-      font-size: 0.82rem;
-      text-align: center;
-    }
-
-    @media (max-width: 380px) {
+    @media (max-width: 390px) {
       .app {
-        padding: 18px;
+        padding: 14px;
       }
 
-      h1 {
-        font-size: 1.65rem;
-      }
-
-      .feed-button {
-        font-size: 1.3rem;
-        padding: 19px 14px;
+      .countdown {
+        min-height: 225px;
       }
 
       .countdown-time {
-        font-size: 4rem;
+        font-size: 4.4rem;
       }
 
       .countdown.overdue .countdown-time {
-        font-size: 3.4rem;
+        font-size: 3.3rem;
+      }
+
+      .activity-grid {
+        gap: 3px;
+      }
+
+      .feed-button {
+        font-size: 1.32rem;
       }
     }
 
     @media (min-width: 700px) {
       .countdown-time {
-        font-size: 6.4rem;
+        font-size: 6.6rem;
       }
     }
 
     @media (prefers-color-scheme: dark) {
       :root {
         --bg: #000000;
-        --card: #0b0b0b;
-        --text: #f3f4f6;
-        --muted: #c7ccd4;
-        --accent: #60a5fa;
-        --accent-pressed: #3b82f6;
-        --ring: rgba(96, 165, 250, 0.28);
-        --safe: #4ade80;
-        --safe-bg: #052e16;
-        --warn: #facc15;
-        --warn-bg: #422006;
-        --danger: #f87171;
-        --danger-bg: #450a0a;
+        --surface: #101113;
+        --surface-soft: #17191c;
+        --text: #f5f5f7;
+        --muted: #a9aeb8;
+        --border: #272a30;
+        --accent: #58a6ff;
+        --accent-pressed: #2f81f7;
+        --safe: #63d471;
+        --safe-bg: #0f2416;
+        --warn: #ffd45a;
+        --warn-bg: #2b2207;
+        --danger: #ff6b5f;
+        --danger-bg: #2a0c0a;
+        --shadow: none;
       }
 
-      .app {
-        box-shadow: none;
+      .hour-cell {
+        background: #24272d;
       }
 
-      .countdown {
-        border-color: #1e3a8a;
-        background: #0b1220;
+      .hour-cell.level-1 {
+        background: #1e3a5f;
       }
 
-      .line {
-        background: #151515;
+      .hour-cell.level-2 {
+        background: #2563eb;
+      }
+
+      .hour-cell.level-3 {
+        background: #60a5fa;
       }
 
       .confirm {
-        background: rgba(0, 0, 0, 0.68);
-      }
-
-      .confirm-box {
-        box-shadow: none;
-      }
-
-      .confirm-cancel {
-        background: #262626;
+        background: rgba(0, 0, 0, 0.7);
       }
     }
   </style>
 </head>
 <body>
   <main class="app">
-    <h1>Feed Baba</h1>
-    <button id="fedButton" class="feed-button" type="button">Fed Baba</button>
-    <p id="noticeText" class="notice" aria-live="polite"></p>
+    <header class="topbar">
+      <h1>Feed Baby</h1>
+      <span class="version">v3</span>
+    </header>
 
-    <section class="status" aria-live="polite">
-      <div id="countdownBox" class="countdown">
+    <section id="countdownBox" class="countdown" aria-live="polite">
+      <div>
         <div class="countdown-label">Time until next feed</div>
         <div id="dueText" class="countdown-time">--</div>
       </div>
-      <div class="line"><span class="label">Last fed:</span> <span id="lastFedText">Not yet</span></div>
-      <div class="line"><span class="label">Time since feed:</span> <span id="sinceText">Press the button after feeding</span></div>
-      <div class="line">
-        <div class="label">Last 3 feeds</div>
+      <div id="timerMeta" class="meta">Tap Fed Baby after feeding</div>
+    </section>
+
+    <section class="panel" aria-label="Daily feed activity">
+      <div class="panel-title">
+        <span>Today</span>
+        <span class="panel-note">24 hours</span>
+      </div>
+      <div id="activityGrid" class="activity-grid"></div>
+      <div class="hour-labels" aria-hidden="true">
+        <span>12a</span>
+        <span>6a</span>
+        <span>12p</span>
+        <span>11p</span>
+      </div>
+    </section>
+
+    <section class="bottom">
+      <button id="fedButton" class="feed-button" type="button">Fed Baby</button>
+      <p id="noticeText" class="notice" aria-live="polite"></p>
+
+      <div class="panel">
+        <div class="panel-title">
+          <span>Last 3 feeds</span>
+        </div>
         <ul id="feedLog" class="feed-log"></ul>
       </div>
     </section>
-    <p class="version">v1.1</p>
   </main>
 
   <div id="confirmPrompt" class="confirm" role="dialog" aria-modal="true" aria-labelledby="confirmTitle" hidden>
     <div class="confirm-box">
-      <p id="confirmTitle">Start next 3 hour timer?</p>
+      <p id="confirmTitle">Start next 2 hour timer?</p>
       <div class="confirm-actions">
         <button id="confirmYes" class="confirm-yes" type="button">Yes</button>
         <button id="confirmCancel" class="confirm-cancel" type="button">Cancel</button>
@@ -347,27 +448,17 @@
     </div>
   </div>
 
-  <script type="module">
-    import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+  <script>
+    var FEED_INTERVAL_MS = 2 * 60 * 60 * 1000;
+    var FEED_LOG_KEY = "feed-baby-feed-log";
+    var LEGACY_LOG_KEY = "feed-baba-feed-log";
+    var LEGACY_LAST_FED_KEY = "feed-baba-last-fed";
+    var MAX_LOG_ENTRIES = 120;
 
-    // Replace with your project values from Supabase > Settings > API
-    var SUPABASE_URL = "https://YOUR_PROJECT_ID.supabase.co";
-    var SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
-
-    // Keep one shared row in table: feed_state (id int primary key, last_fed timestamptz)
-    var STATE_ROW_ID = 1;
-    var THREE_HOURS_MS = 3 * 60 * 60 * 1000;
-    var STORAGE_KEY = "feed-baba-last-fed";
-    var LOG_STORAGE_KEY = "feed-baba-feed-log";
-    var hasSupabaseConfig =
-      !SUPABASE_URL.includes("YOUR_PROJECT_ID") &&
-      SUPABASE_ANON_KEY !== "YOUR_SUPABASE_ANON_KEY";
-    var supabase = hasSupabaseConfig ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
-
-    var lastFedText = document.getElementById("lastFedText");
-    var sinceText = document.getElementById("sinceText");
-    var dueText = document.getElementById("dueText");
     var countdownBox = document.getElementById("countdownBox");
+    var dueText = document.getElementById("dueText");
+    var timerMeta = document.getElementById("timerMeta");
+    var activityGrid = document.getElementById("activityGrid");
     var fedButton = document.getElementById("fedButton");
     var noticeText = document.getElementById("noticeText");
     var feedLog = document.getElementById("feedLog");
@@ -375,12 +466,78 @@
     var confirmYes = document.getElementById("confirmYes");
     var confirmCancel = document.getElementById("confirmCancel");
 
-    var lastFedDate = null;
-    var overdueVibrated = false;
     var noticeTimer = null;
+    var overdueVibrated = false;
     var isSaving = false;
 
-    function formatDate(date) {
+    function readJsonList(key) {
+      try {
+        var parsed = JSON.parse(localStorage.getItem(key) || "[]");
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (error) {
+        return [];
+      }
+    }
+
+    function normalizeFeeds(entries) {
+      var seen = {};
+
+      return entries
+        .filter(function (entry) {
+          var date = new Date(entry);
+          return !isNaN(date.getTime());
+        })
+        .map(function (entry) {
+          return new Date(entry).toISOString();
+        })
+        .filter(function (entry) {
+          if (seen[entry]) return false;
+          seen[entry] = true;
+          return true;
+        })
+        .sort(function (a, b) {
+          return new Date(b).getTime() - new Date(a).getTime();
+        })
+        .slice(0, MAX_LOG_ENTRIES);
+    }
+
+    function migrateLegacyFeeds() {
+      if (localStorage.getItem(FEED_LOG_KEY)) return;
+
+      var legacyEntries = readJsonList(LEGACY_LOG_KEY);
+      var legacyLastFed = localStorage.getItem(LEGACY_LAST_FED_KEY);
+      if (legacyLastFed) legacyEntries.unshift(legacyLastFed);
+
+      var migrated = normalizeFeeds(legacyEntries);
+      if (migrated.length > 0) {
+        localStorage.setItem(FEED_LOG_KEY, JSON.stringify(migrated));
+      }
+    }
+
+    function getFeeds() {
+      return normalizeFeeds(readJsonList(FEED_LOG_KEY));
+    }
+
+    function saveFeeds(entries) {
+      localStorage.setItem(FEED_LOG_KEY, JSON.stringify(normalizeFeeds(entries)));
+    }
+
+    function getLastFeedDate() {
+      var feeds = getFeeds();
+      if (feeds.length === 0) return null;
+
+      var date = new Date(feeds[0]);
+      return isNaN(date.getTime()) ? null : date;
+    }
+
+    function formatTime(date) {
+      return date.toLocaleTimeString([], {
+        hour: "numeric",
+        minute: "2-digit"
+      });
+    }
+
+    function formatDateTime(date) {
       return date.toLocaleString([], {
         weekday: "short",
         month: "short",
@@ -396,7 +553,7 @@
       var minutes = Math.floor((totalSeconds % 3600) / 60);
       var seconds = totalSeconds % 60;
 
-      if (hours > 0) return hours + "h " + minutes + "m " + seconds + "s";
+      if (hours > 0) return hours + "h " + minutes + "m";
       if (minutes > 0) return minutes + "m " + seconds + "s";
       return seconds + "s";
     }
@@ -415,71 +572,110 @@
       }
     }
 
-    function setLastFedFromIso(isoValue) {
-      if (!isoValue) {
-        lastFedDate = null;
+    function renderCountdown() {
+      var lastFeedDate = getLastFeedDate();
+
+      if (!lastFeedDate) {
+        dueText.textContent = "--";
+        timerMeta.textContent = "Tap Fed Baby after feeding";
+        setCountdownState("");
+        overdueVibrated = false;
         return;
       }
 
-      var next = new Date(isoValue);
-      lastFedDate = isNaN(next.getTime()) ? null : next;
-    }
+      var dueAt = new Date(lastFeedDate.getTime() + FEED_INTERVAL_MS);
+      var remainingMs = dueAt.getTime() - Date.now();
 
-    function loadLocalLastFed() {
-      setLastFedFromIso(localStorage.getItem(STORAGE_KEY));
-      render();
-      renderFeedLog();
-    }
+      if (remainingMs > 0) {
+        dueText.textContent = formatDuration(remainingMs);
+        timerMeta.textContent = "Last fed " + formatTime(lastFeedDate);
+        overdueVibrated = false;
 
-    function saveLocalLastFed(isoValue) {
-      localStorage.setItem(STORAGE_KEY, isoValue);
-      setLastFedFromIso(isoValue);
-      render();
-    }
-
-    function getFeedLog() {
-      try {
-        var parsed = JSON.parse(localStorage.getItem(LOG_STORAGE_KEY) || "[]");
-        return Array.isArray(parsed) ? parsed : [];
-      } catch (error) {
-        return [];
+        if (remainingMs > 60 * 60 * 1000) {
+          setCountdownState("safe");
+        } else if (remainingMs < 30 * 60 * 1000) {
+          setCountdownState("warning");
+        } else {
+          setCountdownState("");
+        }
+      } else {
+        dueText.textContent = "FEED NOW";
+        timerMeta.textContent = "Due since " + formatTime(dueAt);
+        setCountdownState("overdue");
+        vibrateOverdueOnce();
       }
     }
 
-    function saveFeedLog(entries) {
-      localStorage.setItem(LOG_STORAGE_KEY, JSON.stringify(entries.slice(0, 3)));
+    function getFeedsByHour() {
+      var now = new Date();
+      var startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      var feedsByHour = {};
+
+      getFeeds().forEach(function (entry) {
+        var date = new Date(entry);
+        if (date < startOfDay || date > now) return;
+
+        var hour = date.getHours();
+        if (!feedsByHour[hour] || date > feedsByHour[hour]) {
+          feedsByHour[hour] = date;
+        }
+      });
+
+      return feedsByHour;
     }
 
-    function addFeedLogEntry(isoValue) {
-      var entries = getFeedLog().filter(function (entry) {
-        return entry !== isoValue;
-      });
-      entries.unshift(isoValue);
-      saveFeedLog(entries);
-      renderFeedLog();
+    function getActivityLevel(feedDate) {
+      if (!feedDate) return 0;
+
+      var ageHours = (Date.now() - feedDate.getTime()) / 3600000;
+      if (ageHours <= 2) return 3;
+      if (ageHours <= 8) return 2;
+      return 1;
+    }
+
+    function renderActivityGrid() {
+      var feedsByHour = getFeedsByHour();
+      activityGrid.innerHTML = "";
+
+      for (var hour = 0; hour < 24; hour += 1) {
+        var cell = document.createElement("div");
+        var feedDate = feedsByHour[hour];
+        var level = getActivityLevel(feedDate);
+        cell.className = "hour-cell" + (level ? " level-" + level : "");
+        cell.title = feedDate ? "Fed at " + formatTime(feedDate) : "No feed logged at " + hour + ":00";
+        activityGrid.appendChild(cell);
+      }
     }
 
     function renderFeedLog() {
-      var entries = getFeedLog();
+      var feeds = getFeeds().slice(0, 3);
       feedLog.innerHTML = "";
 
-      if (entries.length === 0 && lastFedDate) {
-        entries = [lastFedDate.toISOString()];
-      }
-
-      if (entries.length === 0) {
+      if (feeds.length === 0) {
         var emptyItem = document.createElement("li");
         emptyItem.textContent = "No feeds yet";
         feedLog.appendChild(emptyItem);
         return;
       }
 
-      entries.slice(0, 3).forEach(function (entry) {
+      feeds.forEach(function (entry) {
         var date = new Date(entry);
         var item = document.createElement("li");
-        item.textContent = isNaN(date.getTime()) ? entry : formatDate(date);
+        var label = document.createElement("strong");
+        var value = document.createElement("span");
+
+        label.textContent = formatTime(date);
+        value.textContent = formatDateTime(date);
+        item.appendChild(label);
+        item.appendChild(value);
         feedLog.appendChild(item);
       });
+    }
+
+    function render() {
+      renderCountdown();
+      renderActivityGrid();
+      renderFeedLog();
     }
 
     function showNotice(message) {
@@ -500,7 +696,7 @@
     function hideConfirm() {
       confirmPrompt.hidden = true;
       fedButton.disabled = false;
-      fedButton.textContent = "Fed Baba";
+      fedButton.textContent = "Fed Baby";
     }
 
     function finishButtonCooldown(startedAt) {
@@ -510,138 +706,29 @@
       setTimeout(function () {
         isSaving = false;
         fedButton.disabled = false;
-        fedButton.textContent = "Fed Baba";
+        fedButton.textContent = "Fed Baby";
       }, remaining);
     }
 
-    function render() {
-      if (!lastFedDate) {
-        lastFedText.textContent = "Not yet";
-        sinceText.textContent = "Press the button after feeding";
-        dueText.textContent = "--";
-        setCountdownState("");
-        overdueVibrated = false;
-        return;
-      }
-
-      lastFedText.textContent = formatDate(lastFedDate);
-      sinceText.textContent = formatDuration(Date.now() - lastFedDate.getTime());
-      var dueAt = new Date(lastFedDate.getTime() + THREE_HOURS_MS);
-      var remainingMs = dueAt.getTime() - Date.now();
-
-      if (remainingMs > 0) {
-        dueText.textContent = formatDuration(remainingMs);
-        overdueVibrated = false;
-        if (remainingMs > 60 * 60 * 1000) {
-          setCountdownState("safe");
-        } else if (remainingMs < 30 * 60 * 1000) {
-          setCountdownState("warning");
-        } else {
-          setCountdownState("");
-        }
-      } else {
-        dueText.textContent = "FEED NOW";
-        setCountdownState("overdue");
-        vibrateOverdueOnce();
-      }
-    }
-
-    async function loadLastFed() {
-      if (!supabase) {
-        loadLocalLastFed();
-        return;
-      }
-
-      var result = await supabase
-        .from("feed_state")
-        .select("last_fed")
-        .eq("id", STATE_ROW_ID)
-        .maybeSingle();
-
-      if (result.error) {
-        lastFedText.textContent = "Connection issue";
-        sinceText.textContent = "Check Supabase settings";
-        dueText.textContent = "--";
-        setCountdownState("");
-        return;
-      }
-
-      setLastFedFromIso(result.data && result.data.last_fed);
-
-      render();
-      renderFeedLog();
-    }
-
-    async function saveNow() {
+    function logFeed() {
       if (isSaving) return;
 
       isSaving = true;
       var startedAt = Date.now();
-      fedButton.disabled = true;
-      fedButton.textContent = "Saving...";
-      confirmPrompt.hidden = true;
-
       var nowIso = new Date().toISOString();
+      var feeds = getFeeds();
 
-      if (!supabase) {
-        saveLocalLastFed(nowIso);
-        addFeedLogEntry(nowIso);
-        showNotice("Just fed");
-        finishButtonCooldown(startedAt);
-        return;
-      }
-
-      var result;
-
-      try {
-        result = await supabase
-          .from("feed_state")
-          .upsert({ id: STATE_ROW_ID, last_fed: nowIso }, { onConflict: "id" });
-      } catch (error) {
-        result = { error: error };
-      }
-
-      if (result.error) {
-        lastFedText.textContent = "Save failed";
-        sinceText.textContent = result.error.message || "Please try again";
-        finishButtonCooldown(startedAt);
-        return;
-      }
-
-      lastFedDate = new Date(nowIso);
-      addFeedLogEntry(nowIso);
+      confirmPrompt.hidden = true;
+      fedButton.disabled = true;
+      fedButton.textContent = "Saved";
+      saveFeeds([nowIso].concat(feeds));
       showNotice("Just fed");
       render();
       finishButtonCooldown(startedAt);
     }
 
-    function subscribeToRealtime() {
-      if (!supabase) return;
-
-      supabase
-        .channel("feed-state-live")
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "feed_state", filter: "id=eq." + STATE_ROW_ID },
-          function (payload) {
-            var row = payload.new || payload.old;
-            if (row && row.last_fed) {
-              var next = new Date(row.last_fed);
-              if (!isNaN(next.getTime())) {
-                lastFedDate = next;
-                addFeedLogEntry(row.last_fed);
-                render();
-                return;
-              }
-            }
-            loadLastFed();
-          }
-        )
-        .subscribe();
-    }
-
     fedButton.addEventListener("click", showConfirm);
-    confirmYes.addEventListener("click", saveNow);
+    confirmYes.addEventListener("click", logFeed);
     confirmCancel.addEventListener("click", hideConfirm);
     confirmPrompt.addEventListener("click", function (event) {
       if (event.target === confirmPrompt) hideConfirm();
@@ -649,11 +736,11 @@
     document.addEventListener("keydown", function (event) {
       if (event.key === "Escape" && !confirmPrompt.hidden) hideConfirm();
     });
-    await loadLastFed();
-    renderFeedLog();
-    subscribeToRealtime();
-    setInterval(render, 1000);
-    setInterval(loadLastFed, 60000);
+
+    migrateLegacyFeeds();
+    render();
+    setInterval(renderCountdown, 1000);
+    setInterval(renderActivityGrid, 60000);
   </script>
 </body>
 </html>
