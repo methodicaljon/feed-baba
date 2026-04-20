@@ -15,6 +15,8 @@
       --accent: #1d4ed8;
       --accent-pressed: #1e40af;
       --ring: rgba(29, 78, 216, 0.22);
+      --safe: #16a34a;
+      --safe-bg: #dcfce7;
       --warn: #facc15;
       --warn-bg: #fef9c3;
       --danger: #dc2626;
@@ -33,8 +35,9 @@
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       color: var(--text);
       background: var(--bg);
-      display: grid;
-      place-items: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
     }
 
@@ -79,7 +82,7 @@
     }
 
     .status {
-      margin-top: 18px;
+      margin-top: 16px;
       display: grid;
       gap: 10px;
       font-size: 1rem;
@@ -92,9 +95,17 @@
       border: 2px solid #dbeafe;
       border-radius: var(--radius);
       background: #eff6ff;
-      padding: 18px 14px;
+      min-height: 230px;
+      place-items: center;
+      padding: 24px 14px;
       text-align: center;
       color: var(--accent);
+    }
+
+    .countdown.safe {
+      border-color: var(--safe);
+      background: var(--safe-bg);
+      color: var(--safe);
     }
 
     .countdown.warning {
@@ -117,11 +128,15 @@
     }
 
     .countdown-time {
-      font-size: 3.7rem;
+      font-size: 5.3rem;
       font-weight: 800;
-      line-height: 0.95;
+      line-height: 0.9;
       letter-spacing: 0;
       overflow-wrap: anywhere;
+    }
+
+    .countdown.overdue .countdown-time {
+      font-weight: 900;
     }
 
     .line {
@@ -158,13 +173,48 @@
       }
 
       .countdown-time {
-        font-size: 3rem;
+        font-size: 4rem;
+      }
+
+      .countdown.overdue .countdown-time {
+        font-size: 3.4rem;
       }
     }
 
     @media (min-width: 700px) {
       .countdown-time {
-        font-size: 4.6rem;
+        font-size: 6.4rem;
+      }
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #000000;
+        --card: #0b0b0b;
+        --text: #f3f4f6;
+        --muted: #c7ccd4;
+        --accent: #60a5fa;
+        --accent-pressed: #3b82f6;
+        --ring: rgba(96, 165, 250, 0.28);
+        --safe: #4ade80;
+        --safe-bg: #052e16;
+        --warn: #facc15;
+        --warn-bg: #422006;
+        --danger: #f87171;
+        --danger-bg: #450a0a;
+      }
+
+      .app {
+        box-shadow: none;
+      }
+
+      .countdown {
+        border-color: #1e3a8a;
+        background: #0b1220;
+      }
+
+      .line {
+        background: #151515;
       }
     }
   </style>
@@ -204,6 +254,7 @@
     var fedButton = document.getElementById("fedButton");
 
     var lastFedDate = null;
+    var overdueVibrated = false;
 
     function formatDate(date) {
       return date.toLocaleString([], {
@@ -227,8 +278,17 @@
     }
 
     function setCountdownState(state) {
-      countdownBox.classList.remove("warning", "overdue");
+      countdownBox.classList.remove("safe", "warning", "overdue");
       if (state) countdownBox.classList.add(state);
+    }
+
+    function vibrateOverdueOnce() {
+      if (overdueVibrated) return;
+      overdueVibrated = true;
+
+      if ("vibrate" in navigator) {
+        navigator.vibrate([80, 50, 80]);
+      }
     }
 
     function render() {
@@ -237,6 +297,7 @@
         sinceText.textContent = "Press the button after feeding";
         dueText.textContent = "--";
         setCountdownState("");
+        overdueVibrated = false;
         return;
       }
 
@@ -247,10 +308,18 @@
 
       if (remainingMs > 0) {
         dueText.textContent = formatDuration(remainingMs);
-        setCountdownState(remainingMs < 30 * 60 * 1000 ? "warning" : "");
+        overdueVibrated = false;
+        if (remainingMs > 60 * 60 * 1000) {
+          setCountdownState("safe");
+        } else if (remainingMs < 30 * 60 * 1000) {
+          setCountdownState("warning");
+        } else {
+          setCountdownState("");
+        }
       } else {
         dueText.textContent = "FEED NOW";
         setCountdownState("overdue");
+        vibrateOverdueOnce();
       }
     }
 
