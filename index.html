@@ -245,7 +245,11 @@
     // Keep one shared row in table: feed_state (id int primary key, last_fed timestamptz)
     var STATE_ROW_ID = 1;
     var THREE_HOURS_MS = 3 * 60 * 60 * 1000;
-    var supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    var STORAGE_KEY = "feed-baba-last-fed";
+    var hasSupabaseConfig =
+      !SUPABASE_URL.includes("YOUR_PROJECT_ID") &&
+      SUPABASE_ANON_KEY !== "YOUR_SUPABASE_ANON_KEY";
+    var supabase = hasSupabaseConfig ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
     var lastFedText = document.getElementById("lastFedText");
     var sinceText = document.getElementById("sinceText");
@@ -291,6 +295,27 @@
       }
     }
 
+    function setLastFedFromIso(isoValue) {
+      if (!isoValue) {
+        lastFedDate = null;
+        return;
+      }
+
+      var next = new Date(isoValue);
+      lastFedDate = isNaN(next.getTime()) ? null : next;
+    }
+
+    function loadLocalLastFed() {
+      setLastFedFromIso(localStorage.getItem(STORAGE_KEY));
+      render();
+    }
+
+    function saveLocalLastFed(isoValue) {
+      localStorage.setItem(STORAGE_KEY, isoValue);
+      setLastFedFromIso(isoValue);
+      render();
+    }
+
     function render() {
       if (!lastFedDate) {
         lastFedText.textContent = "Not yet";
@@ -324,6 +349,11 @@
     }
 
     async function loadLastFed() {
+      if (!supabase) {
+        loadLocalLastFed();
+        return;
+      }
+
       var result = await supabase
         .from("feed_state")
         .select("last_fed")
@@ -338,12 +368,7 @@
         return;
       }
 
-      if (!result.data || !result.data.last_fed) {
-        lastFedDate = null;
-      } else {
-        lastFedDate = new Date(result.data.last_fed);
-        if (isNaN(lastFedDate.getTime())) lastFedDate = null;
-      }
+      setLastFedFromIso(result.data && result.data.last_fed);
 
       render();
     }
@@ -353,6 +378,14 @@
       fedButton.textContent = "Saving...";
 
       var nowIso = new Date().toISOString();
+
+      if (!supabase) {
+        saveLocalLastFed(nowIso);
+        fedButton.disabled = false;
+        fedButton.textContent = "Fed Baba";
+        return;
+      }
+
       var result = await supabase
         .from("feed_state")
         .upsert({ id: STATE_ROW_ID, last_fed: nowIso }, { onConflict: "id" });
@@ -362,7 +395,7 @@
 
       if (result.error) {
         lastFedText.textContent = "Save failed";
-        sinceText.textContent = "Please try again";
+        sinceText.textContent = result.error.message || "Please try again";
         return;
       }
 
@@ -371,6 +404,8 @@
     }
 
     function subscribeToRealtime() {
+      if (!supabase) return;
+
       supabase
         .channel("feed-state-live")
         .on(
