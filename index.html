@@ -81,6 +81,12 @@
       outline-offset: 2px;
     }
 
+    .feed-button:disabled {
+      cursor: not-allowed;
+      opacity: 0.68;
+      transform: none;
+    }
+
     .status {
       margin-top: 16px;
       display: grid;
@@ -151,6 +157,85 @@
       font-weight: 600;
     }
 
+    .notice {
+      min-height: 1.3em;
+      margin: 10px 0 0;
+      color: var(--safe);
+      font-weight: 700;
+      text-align: center;
+    }
+
+    .notice:empty {
+      margin-top: 0;
+    }
+
+    .feed-log {
+      display: grid;
+      gap: 7px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .feed-log li {
+      color: var(--muted);
+    }
+
+    .confirm {
+      position: fixed;
+      inset: 0;
+      z-index: 10;
+      display: grid;
+      place-items: center;
+      padding: 16px;
+      background: rgba(15, 23, 42, 0.42);
+    }
+
+    .confirm[hidden] {
+      display: none;
+    }
+
+    .confirm-box {
+      width: min(340px, 100%);
+      border-radius: var(--radius);
+      background: var(--card);
+      padding: 18px;
+      text-align: center;
+      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.2);
+    }
+
+    .confirm-box p {
+      margin: 0 0 16px;
+      color: var(--text);
+      font-size: 1.15rem;
+      font-weight: 700;
+    }
+
+    .confirm-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .confirm-actions button {
+      border: 0;
+      border-radius: var(--radius);
+      padding: 13px 12px;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .confirm-yes {
+      color: #ffffff;
+      background: var(--accent);
+    }
+
+    .confirm-cancel {
+      color: var(--text);
+      background: #e5e7eb;
+    }
+
     .version {
       margin: 14px 0 0;
       color: var(--muted);
@@ -216,6 +301,18 @@
       .line {
         background: #151515;
       }
+
+      .confirm {
+        background: rgba(0, 0, 0, 0.68);
+      }
+
+      .confirm-box {
+        box-shadow: none;
+      }
+
+      .confirm-cancel {
+        background: #262626;
+      }
     }
   </style>
 </head>
@@ -223,6 +320,7 @@
   <main class="app">
     <h1>Feed Baba</h1>
     <button id="fedButton" class="feed-button" type="button">Fed Baba</button>
+    <p id="noticeText" class="notice" aria-live="polite"></p>
 
     <section class="status" aria-live="polite">
       <div id="countdownBox" class="countdown">
@@ -231,9 +329,23 @@
       </div>
       <div class="line"><span class="label">Last fed:</span> <span id="lastFedText">Not yet</span></div>
       <div class="line"><span class="label">Time since feed:</span> <span id="sinceText">Press the button after feeding</span></div>
+      <div class="line">
+        <div class="label">Last 3 feeds</div>
+        <ul id="feedLog" class="feed-log"></ul>
+      </div>
     </section>
     <p class="version">v1.1</p>
   </main>
+
+  <div id="confirmPrompt" class="confirm" role="dialog" aria-modal="true" aria-labelledby="confirmTitle" hidden>
+    <div class="confirm-box">
+      <p id="confirmTitle">Start next 3 hour timer?</p>
+      <div class="confirm-actions">
+        <button id="confirmYes" class="confirm-yes" type="button">Yes</button>
+        <button id="confirmCancel" class="confirm-cancel" type="button">Cancel</button>
+      </div>
+    </div>
+  </div>
 
   <script type="module">
     import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
@@ -246,6 +358,7 @@
     var STATE_ROW_ID = 1;
     var THREE_HOURS_MS = 3 * 60 * 60 * 1000;
     var STORAGE_KEY = "feed-baba-last-fed";
+    var LOG_STORAGE_KEY = "feed-baba-feed-log";
     var hasSupabaseConfig =
       !SUPABASE_URL.includes("YOUR_PROJECT_ID") &&
       SUPABASE_ANON_KEY !== "YOUR_SUPABASE_ANON_KEY";
@@ -256,9 +369,16 @@
     var dueText = document.getElementById("dueText");
     var countdownBox = document.getElementById("countdownBox");
     var fedButton = document.getElementById("fedButton");
+    var noticeText = document.getElementById("noticeText");
+    var feedLog = document.getElementById("feedLog");
+    var confirmPrompt = document.getElementById("confirmPrompt");
+    var confirmYes = document.getElementById("confirmYes");
+    var confirmCancel = document.getElementById("confirmCancel");
 
     var lastFedDate = null;
     var overdueVibrated = false;
+    var noticeTimer = null;
+    var isSaving = false;
 
     function formatDate(date) {
       return date.toLocaleString([], {
@@ -308,12 +428,90 @@
     function loadLocalLastFed() {
       setLastFedFromIso(localStorage.getItem(STORAGE_KEY));
       render();
+      renderFeedLog();
     }
 
     function saveLocalLastFed(isoValue) {
       localStorage.setItem(STORAGE_KEY, isoValue);
       setLastFedFromIso(isoValue);
       render();
+    }
+
+    function getFeedLog() {
+      try {
+        var parsed = JSON.parse(localStorage.getItem(LOG_STORAGE_KEY) || "[]");
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (error) {
+        return [];
+      }
+    }
+
+    function saveFeedLog(entries) {
+      localStorage.setItem(LOG_STORAGE_KEY, JSON.stringify(entries.slice(0, 3)));
+    }
+
+    function addFeedLogEntry(isoValue) {
+      var entries = getFeedLog().filter(function (entry) {
+        return entry !== isoValue;
+      });
+      entries.unshift(isoValue);
+      saveFeedLog(entries);
+      renderFeedLog();
+    }
+
+    function renderFeedLog() {
+      var entries = getFeedLog();
+      feedLog.innerHTML = "";
+
+      if (entries.length === 0 && lastFedDate) {
+        entries = [lastFedDate.toISOString()];
+      }
+
+      if (entries.length === 0) {
+        var emptyItem = document.createElement("li");
+        emptyItem.textContent = "No feeds yet";
+        feedLog.appendChild(emptyItem);
+        return;
+      }
+
+      entries.slice(0, 3).forEach(function (entry) {
+        var date = new Date(entry);
+        var item = document.createElement("li");
+        item.textContent = isNaN(date.getTime()) ? entry : formatDate(date);
+        feedLog.appendChild(item);
+      });
+    }
+
+    function showNotice(message) {
+      noticeText.textContent = message;
+      clearTimeout(noticeTimer);
+      noticeTimer = setTimeout(function () {
+        noticeText.textContent = "";
+      }, 2500);
+    }
+
+    function showConfirm() {
+      if (fedButton.disabled || isSaving) return;
+      confirmPrompt.hidden = false;
+      fedButton.disabled = true;
+      confirmYes.focus();
+    }
+
+    function hideConfirm() {
+      confirmPrompt.hidden = true;
+      fedButton.disabled = false;
+      fedButton.textContent = "Fed Baba";
+    }
+
+    function finishButtonCooldown(startedAt) {
+      var elapsed = Date.now() - startedAt;
+      var remaining = Math.max(0, 3000 - elapsed);
+
+      setTimeout(function () {
+        isSaving = false;
+        fedButton.disabled = false;
+        fedButton.textContent = "Fed Baba";
+      }, remaining);
     }
 
     function render() {
@@ -371,36 +569,50 @@
       setLastFedFromIso(result.data && result.data.last_fed);
 
       render();
+      renderFeedLog();
     }
 
     async function saveNow() {
+      if (isSaving) return;
+
+      isSaving = true;
+      var startedAt = Date.now();
       fedButton.disabled = true;
       fedButton.textContent = "Saving...";
+      confirmPrompt.hidden = true;
 
       var nowIso = new Date().toISOString();
 
       if (!supabase) {
         saveLocalLastFed(nowIso);
-        fedButton.disabled = false;
-        fedButton.textContent = "Fed Baba";
+        addFeedLogEntry(nowIso);
+        showNotice("Just fed");
+        finishButtonCooldown(startedAt);
         return;
       }
 
-      var result = await supabase
-        .from("feed_state")
-        .upsert({ id: STATE_ROW_ID, last_fed: nowIso }, { onConflict: "id" });
+      var result;
 
-      fedButton.disabled = false;
-      fedButton.textContent = "Fed Baba";
+      try {
+        result = await supabase
+          .from("feed_state")
+          .upsert({ id: STATE_ROW_ID, last_fed: nowIso }, { onConflict: "id" });
+      } catch (error) {
+        result = { error: error };
+      }
 
       if (result.error) {
         lastFedText.textContent = "Save failed";
         sinceText.textContent = result.error.message || "Please try again";
+        finishButtonCooldown(startedAt);
         return;
       }
 
       lastFedDate = new Date(nowIso);
+      addFeedLogEntry(nowIso);
+      showNotice("Just fed");
       render();
+      finishButtonCooldown(startedAt);
     }
 
     function subscribeToRealtime() {
@@ -417,6 +629,7 @@
               var next = new Date(row.last_fed);
               if (!isNaN(next.getTime())) {
                 lastFedDate = next;
+                addFeedLogEntry(row.last_fed);
                 render();
                 return;
               }
@@ -427,8 +640,17 @@
         .subscribe();
     }
 
-    fedButton.addEventListener("click", saveNow);
+    fedButton.addEventListener("click", showConfirm);
+    confirmYes.addEventListener("click", saveNow);
+    confirmCancel.addEventListener("click", hideConfirm);
+    confirmPrompt.addEventListener("click", function (event) {
+      if (event.target === confirmPrompt) hideConfirm();
+    });
+    document.addEventListener("keydown", function (event) {
+      if (event.key === "Escape" && !confirmPrompt.hidden) hideConfirm();
+    });
     await loadLastFed();
+    renderFeedLog();
     subscribeToRealtime();
     setInterval(render, 1000);
     setInterval(loadLastFed, 60000);
