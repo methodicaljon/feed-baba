@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#f7f8fb">
-  <title>Feed Emma</title>
+  <title>Feed Baba</title>
   <style>
     :root {
       --bg: #f7f8fb;
@@ -15,7 +15,11 @@
       --accent: #1d4ed8;
       --accent-pressed: #1e40af;
       --ring: rgba(29, 78, 216, 0.22);
-      --radius: 18px;
+      --warn: #facc15;
+      --warn-bg: #fef9c3;
+      --danger: #dc2626;
+      --danger-bg: #fee2e2;
+      --radius: 8px;
     }
 
     * {
@@ -28,10 +32,7 @@
       min-height: 100dvh;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       color: var(--text);
-      background:
-        radial-gradient(circle at top right, #eaf0ff, transparent 42%),
-        radial-gradient(circle at bottom left, #eef6ff, transparent 40%),
-        var(--bg);
+      background: var(--bg);
       display: grid;
       place-items: center;
       padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
@@ -47,7 +48,7 @@
 
     h1 {
       margin: 0 0 14px;
-      font-size: clamp(1.6rem, 3vw + 1rem, 2rem);
+      font-size: 1.9rem;
       line-height: 1.2;
       text-align: center;
     }
@@ -55,12 +56,12 @@
     .feed-button {
       width: 100%;
       border: none;
-      border-radius: 16px;
+      border-radius: var(--radius);
       padding: 22px 16px;
-      font-size: clamp(1.35rem, 2.4vw + 1rem, 1.65rem);
+      font-size: 1.45rem;
       font-weight: 700;
       color: #ffffff;
-      background: linear-gradient(180deg, #2563eb, var(--accent));
+      background: var(--accent);
       box-shadow: 0 8px 20px var(--ring);
       touch-action: manipulation;
       -webkit-tap-highlight-color: transparent;
@@ -85,9 +86,47 @@
       line-height: 1.45;
     }
 
+    .countdown {
+      display: grid;
+      gap: 8px;
+      border: 2px solid #dbeafe;
+      border-radius: var(--radius);
+      background: #eff6ff;
+      padding: 18px 14px;
+      text-align: center;
+      color: var(--accent);
+    }
+
+    .countdown.warning {
+      border-color: var(--warn);
+      background: var(--warn-bg);
+      color: #854d0e;
+    }
+
+    .countdown.overdue {
+      border-color: var(--danger);
+      background: var(--danger-bg);
+      color: var(--danger);
+    }
+
+    .countdown-label {
+      color: var(--text);
+      font-size: 0.95rem;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .countdown-time {
+      font-size: 3.7rem;
+      font-weight: 800;
+      line-height: 0.95;
+      letter-spacing: 0;
+      overflow-wrap: anywhere;
+    }
+
     .line {
       background: #f8fafc;
-      border-radius: 12px;
+      border-radius: var(--radius);
       padding: 12px 13px;
       color: var(--muted);
     }
@@ -96,17 +135,54 @@
       color: var(--text);
       font-weight: 600;
     }
+
+    .version {
+      margin: 14px 0 0;
+      color: var(--muted);
+      font-size: 0.82rem;
+      text-align: center;
+    }
+
+    @media (max-width: 380px) {
+      .app {
+        padding: 18px;
+      }
+
+      h1 {
+        font-size: 1.65rem;
+      }
+
+      .feed-button {
+        font-size: 1.3rem;
+        padding: 19px 14px;
+      }
+
+      .countdown-time {
+        font-size: 3rem;
+      }
+    }
+
+    @media (min-width: 700px) {
+      .countdown-time {
+        font-size: 4.6rem;
+      }
+    }
   </style>
 </head>
 <body>
   <main class="app">
-    <h1>Feed Emma</h1>
-    <button id="fedButton" class="feed-button" type="button">Fed Emma</button>
+    <h1>Feed Baba</h1>
+    <button id="fedButton" class="feed-button" type="button">Fed Baba</button>
 
     <section class="status" aria-live="polite">
+      <div id="countdownBox" class="countdown">
+        <div class="countdown-label">Time until next feed</div>
+        <div id="dueText" class="countdown-time">--</div>
+      </div>
       <div class="line"><span class="label">Last fed:</span> <span id="lastFedText">Not yet</span></div>
-      <div class="line"><span class="label">Next feed due in 3 hours:</span> <span id="dueText">Press the button after feeding</span></div>
+      <div class="line"><span class="label">Time since feed:</span> <span id="sinceText">Press the button after feeding</span></div>
     </section>
+    <p class="version">v1.1</p>
   </main>
 
   <script type="module">
@@ -122,7 +198,9 @@
     var supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     var lastFedText = document.getElementById("lastFedText");
+    var sinceText = document.getElementById("sinceText");
     var dueText = document.getElementById("dueText");
+    var countdownBox = document.getElementById("countdownBox");
     var fedButton = document.getElementById("fedButton");
 
     var lastFedDate = null;
@@ -138,30 +216,41 @@
     }
 
     function formatDuration(ms) {
-      var totalMinutes = Math.ceil(ms / 60000);
-      var hours = Math.floor(totalMinutes / 60);
-      var minutes = totalMinutes % 60;
+      var totalSeconds = Math.max(0, Math.floor(ms / 1000));
+      var hours = Math.floor(totalSeconds / 3600);
+      var minutes = Math.floor((totalSeconds % 3600) / 60);
+      var seconds = totalSeconds % 60;
 
-      if (hours <= 0) return minutes + "m";
-      if (minutes === 0) return hours + "h";
-      return hours + "h " + minutes + "m";
+      if (hours > 0) return hours + "h " + minutes + "m " + seconds + "s";
+      if (minutes > 0) return minutes + "m " + seconds + "s";
+      return seconds + "s";
+    }
+
+    function setCountdownState(state) {
+      countdownBox.classList.remove("warning", "overdue");
+      if (state) countdownBox.classList.add(state);
     }
 
     function render() {
       if (!lastFedDate) {
         lastFedText.textContent = "Not yet";
-        dueText.textContent = "Press the button after feeding";
+        sinceText.textContent = "Press the button after feeding";
+        dueText.textContent = "--";
+        setCountdownState("");
         return;
       }
 
       lastFedText.textContent = formatDate(lastFedDate);
+      sinceText.textContent = formatDuration(Date.now() - lastFedDate.getTime());
       var dueAt = new Date(lastFedDate.getTime() + THREE_HOURS_MS);
       var remainingMs = dueAt.getTime() - Date.now();
 
       if (remainingMs > 0) {
         dueText.textContent = formatDuration(remainingMs);
+        setCountdownState(remainingMs < 30 * 60 * 1000 ? "warning" : "");
       } else {
-        dueText.textContent = "Now (overdue by " + formatDuration(Math.abs(remainingMs)) + ")";
+        dueText.textContent = "FEED NOW";
+        setCountdownState("overdue");
       }
     }
 
@@ -174,7 +263,9 @@
 
       if (result.error) {
         lastFedText.textContent = "Connection issue";
-        dueText.textContent = "Check Supabase settings";
+        sinceText.textContent = "Check Supabase settings";
+        dueText.textContent = "--";
+        setCountdownState("");
         return;
       }
 
@@ -198,11 +289,11 @@
         .upsert({ id: STATE_ROW_ID, last_fed: nowIso }, { onConflict: "id" });
 
       fedButton.disabled = false;
-      fedButton.textContent = "Fed Emma";
+      fedButton.textContent = "Fed Baba";
 
       if (result.error) {
         lastFedText.textContent = "Save failed";
-        dueText.textContent = "Please try again";
+        sinceText.textContent = "Please try again";
         return;
       }
 
@@ -235,7 +326,7 @@
     fedButton.addEventListener("click", saveNow);
     await loadLastFed();
     subscribeToRealtime();
-    setInterval(render, 30000);
+    setInterval(render, 1000);
     setInterval(loadLastFed, 60000);
   </script>
 </body>
